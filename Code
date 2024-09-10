@@ -1,0 +1,55 @@
+import time
+import sqlite3
+import pandas as pd
+import matplotlib.pyplot as plt
+
+conn = sqlite3.connect('screen_time.db')
+cursor = conn.cursor()
+
+cursor.execute('''CREATE TABLE IF NOT EXISTS screen_time
+                  (id INTEGER PRIMARY KEY, date TEXT, usage_seconds INTEGER)''')
+
+def log_screen_time():
+    start_time = time.time()
+    input("Press Enter to stop tracking...")
+    end_time = time.time()
+    usage_seconds = int(end_time - start_time)
+    date = time.strftime('%Y-%m-%d', time.localtime(start_time))
+    
+    cursor.execute('INSERT INTO screen_time (date, usage_seconds) VALUES (?, ?)', (date, usage_seconds))
+    conn.commit()
+    print(f"Screen time logged: {usage_seconds} seconds.")
+
+def generate_report():
+    query = "SELECT * FROM screen_time"
+    df = pd.read_sql_query(query, conn)
+    df['usage_hours'] = df['usage_seconds'] / 3600
+    print(df)
+
+    # Plot screen time
+    plt.figure(figsize=(10,6))
+    plt.plot(df['date'], df['usage_hours'], marker='o', linestyle='-', color='b')
+    plt.title('Screen Time Over Days')
+    plt.xlabel('Date')
+    plt.ylabel('Usage (Hours)')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
+
+if __name__ == "__main__":
+    while True:
+        print("1. Log Screen Time")
+        print("2. Generate Report")
+        print("3. Exit")
+        choice = input("Enter your choice: ")
+        
+        if choice == '1':
+            log_screen_time()
+        elif choice == '2':
+            generate_report()
+        elif choice == '3':
+            break
+        else:
+            print("Invalid choice. Please try again.")
+
+conn.close()
